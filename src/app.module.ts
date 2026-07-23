@@ -16,7 +16,16 @@ import { typeOrmConfig } from './config/typeorm.config';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRootAsync({ useFactory: typeOrmConfig }), AuthModule, UsersModule, ServicesModule, QueuesModule, TicketsModule, CountersModule, NotificationsModule, MailModule],
+    TypeOrmModule.forRootAsync({ useFactory: typeOrmConfig }),
+    AuthModule,
+    UsersModule,
+    ServicesModule,
+    QueuesModule,
+    TicketsModule,
+    CountersModule,
+    NotificationsModule,
+    MailModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
