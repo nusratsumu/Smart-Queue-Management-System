@@ -16,8 +16,8 @@ import { MailModule } from 'src/mail/mail.module';
       global: true,
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('JWT_ACCESS_SECRET'),
-        signOptions: { expiresIn: config.get<string>('JWT_ACCESS_EXPIRES_IN') },
+        secret: config.getOrThrow<string>('JWT_ACCESS_SECRET'),
+        signOptions: { expiresIn: config.getOrThrow<string>('JWT_ACCESS_EXPIRES_IN') as any },
       }),
       inject: [ConfigService],
     }),
