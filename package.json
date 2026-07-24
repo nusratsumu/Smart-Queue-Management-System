@@ -69,7 +69,6 @@
     "typescript-eslint": "^8.20.0"
   },
   "jest": {
-    
     "moduleFileExtensions": [
       "js",
       "json",
@@ -78,10 +77,15 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
-      "^.+\\.(t|j)s$": ["ts-jest", { "isolatedModules": true }]
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "isolatedModules": true
+        }
+      ]
     },
     "moduleNameMapper": {
-    "^src/(.*)$": "<rootDir>/$1"
+      "^src/(.*)$": "<rootDir>/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
@@ -89,6 +93,5 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
     "maxWorkers": 2
-
   }
 }
