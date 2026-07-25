@@ -4,7 +4,7 @@ export class CreateCounterDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(128)
-  name: string;
+  name!: string;
 
   @IsOptional()
   @IsArray()
