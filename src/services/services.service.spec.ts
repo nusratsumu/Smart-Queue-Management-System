@@ -4,15 +4,15 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ServicesService } from './services.service';
 import { Services } from './services.entity';
 
-const mockRepository = () => ({
+ const mockRepository = () => ({
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
   findOne: jest.fn(),
-  remove: jest.fn(),
-});
+   remove: jest.fn(),
+ });
 
-describe('ServicesService', () => {
+ describe('ServicesService', () => {
   let service: ServicesService;
   let repo: ReturnType<typeof mockRepository>;
 

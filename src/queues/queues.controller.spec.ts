@@ -8,8 +8,7 @@ const mockQueuesService = () => ({
   findAll: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
-  open: jest.fn(),
-  close: jest.fn(),
+  updateStatus: jest.fn(),
   remove: jest.fn(),
 });
 
@@ -53,14 +52,10 @@ describe('QueuesController', () => {
     expect(service.update).toHaveBeenCalledWith(1, dto);
   });
 
-  it('open delegates to the service', async () => {
-    await controller.open(1);
-    expect(service.open).toHaveBeenCalledWith(1);
-  });
-
-  it('close delegates to the service', async () => {
-    await controller.close(1);
-    expect(service.close).toHaveBeenCalledWith(1);
+  it('updateStatus delegates to the service', async () => {
+    const dto = { status: QueueStatus.OPEN };
+    await controller.updateStatus(1, dto);
+    expect(service.updateStatus).toHaveBeenCalledWith(1, QueueStatus.OPEN);
   });
 
   it('remove delegates to the service', async () => {

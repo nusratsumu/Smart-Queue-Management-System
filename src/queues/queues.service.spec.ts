@@ -115,25 +115,23 @@ describe('QueuesService', () => {
     });
   });
 
-  describe('open', () => {
+  describe('updateStatus', () => {
     it('sets status to OPEN and saves', async () => {
       const existing = { id: 1, status: QueueStatus.CLOSED };
       queuesRepo.findOne.mockResolvedValue(existing);
       queuesRepo.save.mockImplementation((q) => Promise.resolve(q));
 
-      const result = await service.open(1);
+      const result = await service.updateStatus(1, QueueStatus.OPEN);
 
       expect(result.status).toBe(QueueStatus.OPEN);
     });
-  });
 
-  describe('close', () => {
     it('sets status to CLOSED and saves', async () => {
       const existing = { id: 1, status: QueueStatus.OPEN };
       queuesRepo.findOne.mockResolvedValue(existing);
       queuesRepo.save.mockImplementation((q) => Promise.resolve(q));
 
-      const result = await service.close(1);
+      const result = await service.updateStatus(1, QueueStatus.CLOSED);
 
       expect(result.status).toBe(QueueStatus.CLOSED);
     });

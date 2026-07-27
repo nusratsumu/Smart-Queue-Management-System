@@ -29,13 +29,20 @@ export class TicketsController {
     return this.ticketsService.create(dto, user);
   }
 
+  // Static routes must come before ':id' so Nest doesn't treat "mytickets" as an :id param
+  @Get('mytickets')
+  getMyTickets(@CurrentUser('id') userId: number) {
+    return this.ticketsService.findMyTickets(userId);
+  }
+
   @Get()
   findAll(
     @CurrentUser() user: CurrentUserPayload,
     @Query('status') status?: TicketStatus,
     @Query('queueId', new ParseIntPipe({ optional: true })) queueId?: number,
+    @Query('sort') sort?: 'ASC' | 'DESC',
   ) {
-    return this.ticketsService.findAll(user, status, queueId);
+    return this.ticketsService.findAll(user, status, queueId, sort);
   }
 
   @Get(':id')
@@ -43,11 +50,14 @@ export class TicketsController {
     return this.ticketsService.findOne(id, user);
   }
 
-  @Patch(':id/call')
+  @Patch('queue/:queueId/next')
   @UseGuards(RolesGuard)
   @roles(Role.STAFF, Role.ADMIN)
-  call(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: CurrentUserPayload) {
-    return this.ticketsService.call(id, user);
+  callNext(
+    @Param('queueId', ParseIntPipe) queueId: number,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.ticketsService.callNext(queueId, user);
   }
 
   @Patch(':id/complete')

@@ -58,15 +58,9 @@ export class QueuesService {
     return this.queuesRepository.save(queue);
   }
 
-  async open(id: number): Promise<Queues> {
+  async updateStatus(id: number, status: QueueStatus): Promise<Queues> {
     const queue = await this.findOne(id);
-    queue.status = QueueStatus.OPEN;
-    return this.queuesRepository.save(queue);
-  }
-
-  async close(id: number): Promise<Queues> {
-    const queue = await this.findOne(id);
-    queue.status = QueueStatus.CLOSED;
+    queue.status = status;
     return this.queuesRepository.save(queue);
   }
 

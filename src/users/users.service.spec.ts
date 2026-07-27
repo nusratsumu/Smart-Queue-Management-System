@@ -133,16 +133,20 @@ describe('UsersService', () => {
   });
  
   describe('findAll', () => {
+    const makeQb = (total = 0) => ({
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getManyAndCount: jest.fn().mockResolvedValue([[], total]),
+    });
+
     it('builds a query with search, role filter, and sort', async () => {
-      const qb = {
-        andWhere: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([]),
-      };
+      const qb = makeQb();
       repo.createQueryBuilder.mockReturnValue(qb);
- 
+
       await service.findAll('john', Role.STAFF, 'ASC');
- 
+
       expect(qb.andWhere).toHaveBeenCalledWith(
         '(user.fullName ILIKE :s OR user.email ILIKE :s)',
         { s: '%john%' },
@@ -150,18 +154,46 @@ describe('UsersService', () => {
       expect(qb.andWhere).toHaveBeenCalledWith('user.role = :role', { role: Role.STAFF });
       expect(qb.orderBy).toHaveBeenCalledWith('user.createDate', 'ASC');
     });
- 
+
     it('defaults to DESC sort when no sort is given', async () => {
-      const qb = {
-        andWhere: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([]),
-      };
+      const qb = makeQb();
       repo.createQueryBuilder.mockReturnValue(qb);
- 
+
       await service.findAll();
- 
+
       expect(qb.orderBy).toHaveBeenCalledWith('user.createDate', 'DESC');
+    });
+
+    it('defaults to page 1, limit 10 and applies skip/take', async () => {
+      const qb = makeQb();
+      repo.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.findAll();
+
+      expect(qb.skip).toHaveBeenCalledWith(0);
+      expect(qb.take).toHaveBeenCalledWith(10);
+      expect(result).toEqual({ data: [], total: 0, page: 1, limit: 10 });
+    });
+
+    it('applies the given page and limit', async () => {
+      const qb = makeQb(25);
+      repo.createQueryBuilder.mockReturnValue(qb);
+
+      const result = await service.findAll(undefined, undefined, undefined, 3, 5);
+
+      expect(qb.skip).toHaveBeenCalledWith(10);
+      expect(qb.take).toHaveBeenCalledWith(5);
+      expect(result).toEqual({ data: [], total: 25, page: 3, limit: 5 });
+    });
+
+    it('falls back to safe defaults for invalid page/limit', async () => {
+      const qb = makeQb();
+      repo.createQueryBuilder.mockReturnValue(qb);
+
+      await service.findAll(undefined, undefined, undefined, 0, -5);
+
+      expect(qb.skip).toHaveBeenCalledWith(0);
+      expect(qb.take).toHaveBeenCalledWith(10);
     });
   });
 });

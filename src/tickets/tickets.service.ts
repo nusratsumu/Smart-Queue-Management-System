@@ -45,10 +45,17 @@ export class TicketsService {
     }
 
     const queue = await this.queuesRepository.findOne({
-      where: { service: { id: dto.serviceId }, status: QueueStatus.OPEN },
+      where: { id: dto.queueId },
+      relations: ['service'],
     });
     if (!queue) {
-      throw new NotFoundException('No open queue available for this service right now');
+      throw new NotFoundException(`Queue with id ${dto.queueId} not found`);
+    }
+    if (queue.service.id !== dto.serviceId) {
+      throw new BadRequestException('That queue does not belong to the given service');
+    }
+    if (queue.status !== QueueStatus.OPEN) {
+      throw new BadRequestException('This queue is not currently open');
     }
 
     queue.currentTicketNumber += 1;
@@ -70,6 +77,7 @@ export class TicketsService {
     currentUser: CurrentUserPayload,
     status?: TicketStatus,
     queueId?: number,
+    sort?: 'ASC' | 'DESC',
   ): Promise<Tickets[]> {
     const where: Record<string, unknown> = {};
 
@@ -82,6 +90,14 @@ export class TicketsService {
     return this.ticketsRepository.find({
       where,
       relations: ['user', 'service', 'queue', 'counter'],
+      order: { issuedAt: sort === 'ASC' ? 'ASC' : 'DESC' },
+    });
+  }
+
+  async findMyTickets(userId: number): Promise<Tickets[]> {
+    return this.ticketsRepository.find({
+      where: { user: { id: userId } },
+      relations: ['service', 'queue', 'counter'],
       order: { issuedAt: 'DESC' },
     });
   }
@@ -100,16 +116,14 @@ export class TicketsService {
     return ticket;
   }
 
-  async call(id: number, staffUser: CurrentUserPayload): Promise<Tickets> {
-    const ticket = await this.ticketsRepository.findOne({
-      where: { id },
-      relations: ['user', 'queue', 'service'],
-    });
-    if (!ticket) {
-      throw new NotFoundException(`Ticket with id ${id} not found`);
-    }
-    if (ticket.status !== TicketStatus.WAITING) {
-      throw new BadRequestException('Only waiting tickets can be called');
+  /**
+   * Counter agent calls the next WAITING ticket in a given queue
+   * (the oldest one still waiting), assigns it to their own counter.
+   */
+  async callNext(queueId: number, staffUser: CurrentUserPayload): Promise<Tickets> {
+    const queue = await this.queuesRepository.findOne({ where: { id: queueId } });
+    if (!queue) {
+      throw new NotFoundException(`Queue with id ${queueId} not found`);
     }
 
     const counter = await this.countersRepository.findOne({
@@ -119,16 +133,25 @@ export class TicketsService {
       throw new BadRequestException('You are not currently assigned to a counter');
     }
 
-    ticket.status = TicketStatus.CALLED;
-    ticket.calledAt = new Date();
-    ticket.counter = counter;
+    const nextTicket = await this.ticketsRepository.findOne({
+      where: { queue: { id: queueId }, status: TicketStatus.WAITING },
+      relations: ['user', 'queue'],
+      order: { issuedAt: 'ASC' },
+    });
+    if (!nextTicket) {
+      throw new NotFoundException('No waiting tickets in this queue');
+    }
 
-    const saved = await this.ticketsRepository.save(ticket);
+    nextTicket.status = TicketStatus.CALLED;
+    nextTicket.calledAt = new Date();
+    nextTicket.counter = counter;
+
+    const saved = await this.ticketsRepository.save(nextTicket);
 
     await this.mailService.sendTicketReadyEmail(
-      ticket.user.email,
-      ticket.ticketNumber,
-      ticket.queue.name,
+      nextTicket.user.email,
+      nextTicket.ticketNumber,
+      nextTicket.queue.name,
     );
 
     return saved;
