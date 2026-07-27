@@ -57,18 +57,46 @@ describe('TicketsService', () => {
   describe('create', () => {
     it('throws NotFoundException if the service does not exist or is inactive', async () => {
       servicesRepo.findOne.mockResolvedValue(null);
-      await expect(service.create({ serviceId: 999 }, customer)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.create({ serviceId: 999, queueId: 1 }, customer),
+      ).rejects.toThrow(NotFoundException);
     });
 
-    it('throws NotFoundException if no open queue exists for the service', async () => {
+    it('throws NotFoundException if the queue does not exist', async () => {
       servicesRepo.findOne.mockResolvedValue({ id: 1 });
       queuesRepo.findOne.mockResolvedValue(null);
-      await expect(service.create({ serviceId: 1 }, customer)).rejects.toThrow(NotFoundException);
+      await expect(
+        service.create({ serviceId: 1, queueId: 999 }, customer),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws BadRequestException if the queue does not belong to the given service', async () => {
+      servicesRepo.findOne.mockResolvedValue({ id: 1 });
+      queuesRepo.findOne.mockResolvedValue({
+        id: 7,
+        status: QueueStatus.OPEN,
+        service: { id: 2 }, // different service
+      });
+      await expect(
+        service.create({ serviceId: 1, queueId: 7 }, customer),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException if the queue is not open', async () => {
+      servicesRepo.findOne.mockResolvedValue({ id: 1 });
+      queuesRepo.findOne.mockResolvedValue({
+        id: 7,
+        status: QueueStatus.CLOSED,
+        service: { id: 1 },
+      });
+      await expect(
+        service.create({ serviceId: 1, queueId: 7 }, customer),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('increments the queue counter and creates a ticket with a generated number', async () => {
       servicesRepo.findOne.mockResolvedValue({ id: 1, name: 'Passport Renewal' });
-      const queue = { id: 7, name: 'Counter Q7', currentTicketNumber: 4 };
+      const queue = { id: 7, name: 'Counter Q7', currentTicketNumber: 4, status: QueueStatus.OPEN, service: { id: 1 } };
       queuesRepo.findOne.mockResolvedValue(queue);
       queuesRepo.save.mockResolvedValue({ ...queue, currentTicketNumber: 5 });
 
@@ -76,7 +104,7 @@ describe('TicketsService', () => {
       ticketsRepo.create.mockReturnValue(entity);
       ticketsRepo.save.mockResolvedValue(entity);
 
-      const result = await service.create({ serviceId: 1 }, customer);
+      const result = await service.create({ serviceId: 1, queueId: 7 }, customer);
 
       expect(queuesRepo.save).toHaveBeenCalledWith(expect.objectContaining({ currentTicketNumber: 5 }));
       expect(ticketsRepo.create).toHaveBeenCalledWith(
@@ -100,6 +128,32 @@ describe('TicketsService', () => {
       await service.findAll(staff);
       expect(ticketsRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
     });
+
+    it('defaults sort to DESC', async () => {
+      ticketsRepo.find.mockResolvedValue([]);
+      await service.findAll(staff);
+      expect(ticketsRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({ order: { issuedAt: 'DESC' } }),
+      );
+    });
+
+    it('respects ASC sort when given', async () => {
+      ticketsRepo.find.mockResolvedValue([]);
+      await service.findAll(staff, undefined, undefined, 'ASC');
+      expect(ticketsRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({ order: { issuedAt: 'ASC' } }),
+      );
+    });
+  });
+
+  describe('findMyTickets', () => {
+    it('returns tickets for the given user only', async () => {
+      ticketsRepo.find.mockResolvedValue([]);
+      await service.findMyTickets(1);
+      expect(ticketsRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { user: { id: 1 } } }),
+      );
+    });
   });
 
   describe('findOne', () => {
@@ -108,7 +162,7 @@ describe('TicketsService', () => {
       await expect(service.findOne(999, customer)).rejects.toThrow(NotFoundException);
     });
 
-    it('throws ForbiddenException if a customer requests someone else\'s ticket', async () => {
+    it("throws ForbiddenException if a customer requests someone else's ticket", async () => {
       ticketsRepo.findOne.mockResolvedValue({ id: 1, user: { id: 999 } });
       await expect(service.findOne(1, customer)).rejects.toThrow(ForbiddenException);
     });
@@ -128,38 +182,48 @@ describe('TicketsService', () => {
     });
   });
 
-  describe('call', () => {
-    it('throws NotFoundException when the ticket does not exist', async () => {
-      ticketsRepo.findOne.mockResolvedValue(null);
-      await expect(service.call(999, staff)).rejects.toThrow(NotFoundException);
-    });
-
-    it('throws BadRequestException if the ticket is not WAITING', async () => {
-      ticketsRepo.findOne.mockResolvedValue({ id: 1, status: TicketStatus.CALLED });
-      await expect(service.call(1, staff)).rejects.toThrow(BadRequestException);
+  describe('callNext', () => {
+    it('throws NotFoundException if the queue does not exist', async () => {
+      queuesRepo.findOne.mockResolvedValue(null);
+      await expect(service.callNext(999, staff)).rejects.toThrow(NotFoundException);
     });
 
     it('throws BadRequestException if the staff member has no assigned counter', async () => {
-      ticketsRepo.findOne.mockResolvedValue({ id: 1, status: TicketStatus.WAITING });
+      queuesRepo.findOne.mockResolvedValue({ id: 7 });
       countersRepo.findOne.mockResolvedValue(null);
-      await expect(service.call(1, staff)).rejects.toThrow(BadRequestException);
+      await expect(service.callNext(7, staff)).rejects.toThrow(BadRequestException);
     });
 
-    it('calls the ticket, assigns the counter, and sends the ready email', async () => {
-      const ticket = {
+    it('throws NotFoundException if there are no waiting tickets in the queue', async () => {
+      queuesRepo.findOne.mockResolvedValue({ id: 7 });
+      countersRepo.findOne.mockResolvedValue({ id: 5 });
+      ticketsRepo.findOne.mockResolvedValue(null);
+      await expect(service.callNext(7, staff)).rejects.toThrow(NotFoundException);
+    });
+
+    it('calls the oldest waiting ticket, assigns the counter, and sends the ready email', async () => {
+      queuesRepo.findOne.mockResolvedValue({ id: 7 });
+      const counter = { id: 5, name: 'Counter A' };
+      countersRepo.findOne.mockResolvedValue(counter);
+
+      const nextTicket = {
         id: 1,
         status: TicketStatus.WAITING,
         user: { email: 'cust@test.com' },
         queue: { name: 'Counter Q7' },
         ticketNumber: 'Q7-005',
       };
-      ticketsRepo.findOne.mockResolvedValue(ticket);
-      const counter = { id: 5, name: 'Counter A' };
-      countersRepo.findOne.mockResolvedValue(counter);
+      ticketsRepo.findOne.mockResolvedValue(nextTicket);
       ticketsRepo.save.mockImplementation((t) => Promise.resolve(t));
 
-      const result = await service.call(1, staff);
+      const result = await service.callNext(7, staff);
 
+      expect(ticketsRepo.findOne).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { queue: { id: 7 }, status: TicketStatus.WAITING },
+          order: { issuedAt: 'ASC' },
+        }),
+      );
       expect(result.status).toBe(TicketStatus.CALLED);
       expect(result.counter).toEqual(counter);
       expect(mailService.sendTicketReadyEmail).toHaveBeenCalledWith(
@@ -189,7 +253,7 @@ describe('TicketsService', () => {
   });
 
   describe('cancel', () => {
-    it('throws ForbiddenException if a customer cancels someone else\'s ticket', async () => {
+    it("throws ForbiddenException if a customer cancels someone else's ticket", async () => {
       ticketsRepo.findOne.mockResolvedValue({ id: 1, user: { id: 999 }, status: TicketStatus.WAITING });
       await expect(service.cancel(1, customer)).rejects.toThrow(ForbiddenException);
     });
