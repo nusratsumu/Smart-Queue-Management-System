@@ -12,7 +12,7 @@ import { Services } from './services.entity';
    remove: jest.fn(),
  });
 
- describe('ServicesService', ()) => {
+ describe('ServicesService', () => {
   let service: ServicesService;
   let repo: ReturnType<typeof mockRepository>;
 
