@@ -18,8 +18,12 @@ export class Tickets {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 20 })
-  ticketNumber: string; // e.g. "A-045"
+ @Column({
+  type: 'varchar',
+  length: 20,
+  unique: true,
+})
+ticketNumber: string;
 
   @Column({ type: 'enum', enum: TicketStatus, default: TicketStatus.WAITING })
   status: TicketStatus;

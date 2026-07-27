@@ -1,4 +1,5 @@
 // src/auth/auth.service.ts
+import { Role } from 'src/common/enums/role.enum';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -23,7 +24,13 @@ export class AuthService {
     throw new BadRequestException('Email already exists');
   }
   const hashPass = await bcrypt.hash(dto.password, 10);
-  const user = await this.usersService.createUser({ ...dto, password: hashPass, role: dto.role });
+  const user = await this.usersService.createUser({
+  fullName: dto.fullName,
+  email: dto.email,
+  password: hashPass,
+  phone: dto.phone,
+  role: Role.CUSTOMER,
+});
   await this.mailService.sendWelcomeEmail(user.email, user.fullName);
   return user;
 }

@@ -16,16 +16,30 @@ export class Queues {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 128 })
+  @Column({
+    type: 'varchar',
+    length: 128,
+    unique: true,
+  })
   name: string;
 
-  @Column({ type: 'varchar', length: 128 })
+  @Column({
+    type: 'varchar',
+    length: 128,
+  })
   location: string;
 
-  @Column({ type: 'enum', enum: QueueStatus, default: QueueStatus.OPEN })
+  @Column({
+    type: 'enum',
+    enum: QueueStatus,
+    default: QueueStatus.OPEN,
+  })
   status: QueueStatus;
 
-  @Column({ type: 'int', default: 0 })
+  @Column({
+    type: 'int',
+    default: 0,
+  })
   currentTicketNumber: number;
 
   @ManyToOne(() => Services, (service) => service.queues, {

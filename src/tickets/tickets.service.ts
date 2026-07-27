@@ -15,6 +15,7 @@ import { TicketStatus } from '../common/enums/ticket-status.enum';
 import { QueueStatus } from '../common/enums/queue-status.enum';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { MailService } from '../mail/mail.service';
+import { CounterStatus } from '../common/enums/counter-status.enum';
 
 export interface CurrentUserPayload {
   id: number;
@@ -130,8 +131,17 @@ export class TicketsService {
       where: { staff: { id: staffUser.id } },
     });
     if (!counter) {
-      throw new BadRequestException('You are not currently assigned to a counter');
-    }
+  throw new BadRequestException(
+    'You are not currently assigned to a counter',
+  );
+}
+
+if (counter.status !== CounterStatus.OPEN) {
+  throw new BadRequestException(
+    'Your assigned counter is currently closed.',
+  );
+}
+
 
     const nextTicket = await this.ticketsRepository.findOne({
       where: { queue: { id: queueId }, status: TicketStatus.WAITING },
