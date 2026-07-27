@@ -40,8 +40,8 @@ describe('UsersController', () => {
   });
  
   it('findAll delegates to usersService.findAll with the query params', async () => {
-    await controller.findAll('john', Role.STAFF, 'ASC');
-    expect(service.findAll).toHaveBeenCalledWith('john', Role.STAFF, 'ASC');
+    await controller.findAll('john', Role.STAFF, 'ASC', 2, 20);
+    expect(service.findAll).toHaveBeenCalledWith('john', Role.STAFF, 'ASC', 2, 20);
   });
  
   it('updateRole delegates to usersService.updateRole', async () => {
