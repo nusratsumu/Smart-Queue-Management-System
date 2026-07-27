@@ -18,6 +18,7 @@ import { QueueStatus } from '../common/enums/queue-status.enum';
 import { QueuesService } from './queues.service';
 import { CreateQueueDto } from './dto/create-queue.dto';
 import { UpdateQueueDto } from './dto/update-queue.dto';
+import { UpdateQueueStatusDto } from './dto/update-status.dto';
 
 @Controller('queues')
 export class QueuesController {
@@ -50,18 +51,11 @@ export class QueuesController {
     return this.queuesService.update(id, dto);
   }
 
-  @Patch(':id/open')
+  @Patch(':id/status')
   @UseGuards(JwtGuard, RolesGuard)
   @roles(Role.ADMIN, Role.STAFF)
-  open(@Param('id', ParseIntPipe) id: number) {
-    return this.queuesService.open(id);
-  }
-
-  @Patch(':id/close')
-  @UseGuards(JwtGuard, RolesGuard)
-  @roles(Role.ADMIN, Role.STAFF)
-  close(@Param('id', ParseIntPipe) id: number) {
-    return this.queuesService.close(id);
+  updateStatus(@Param('id', ParseIntPipe) id: number, @Body() dto: UpdateQueueStatusDto) {
+    return this.queuesService.updateStatus(id, dto.status);
   }
 
   @Delete(':id')
