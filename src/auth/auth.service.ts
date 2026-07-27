@@ -23,7 +23,7 @@ export class AuthService {
     throw new BadRequestException('Email already exists');
   }
   const hashPass = await bcrypt.hash(dto.password, 10);
-  const user = await this.usersService.createUser({ ...dto, password: hashPass, role: undefined });
+  const user = await this.usersService.createUser({ ...dto, password: hashPass, role: dto.role });
   await this.mailService.sendWelcomeEmail(user.email, user.fullName);
   return user;
 }
