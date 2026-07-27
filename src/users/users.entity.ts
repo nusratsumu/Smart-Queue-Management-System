@@ -1,4 +1,5 @@
 // src/users/users.entity.ts
+
 import {
   Column,
   CreateDateColumn,
@@ -17,19 +18,37 @@ export class Users {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 128 })
+  @Column({
+    type: 'varchar',
+    length: 128,
+  })
   fullName: string;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    unique: true,
+  })
   email: string;
 
-  @Column({ type: 'varchar' })
+  @Column({
+    type: 'varchar',
+    select: false,
+  })
   password: string;
 
-  @Column({ type: 'varchar', length: 20, nullable: true })
-  phone: string;
+  @Column({
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  phone?: string;
 
-  @Column({ type: 'enum', enum: Role, default: Role.CUSTOMER })
+  @Column({
+    type: 'enum',
+    enum: Role,
+    default: Role.CUSTOMER,
+  })
   role: Role;
 
   @CreateDateColumn()
@@ -38,11 +57,11 @@ export class Users {
   @UpdateDateColumn()
   updateDate: Date;
 
-  // one customer -> many tickets they issued
+  // One customer can have many tickets
   @OneToMany(() => Tickets, (ticket) => ticket.user)
   tickets: Tickets[];
 
-  // one staff user -> one counter (nullable, only staff have this)
+  // One staff member can be assigned to one counter
   @OneToOne(() => Counters, (counter) => counter.staff)
   counter: Counters;
 }

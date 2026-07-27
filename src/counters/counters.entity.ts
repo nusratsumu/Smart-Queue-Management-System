@@ -19,10 +19,18 @@ export class Counters {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 128 })
+  @Column({
+    type: 'varchar',
+    length: 128,
+    unique: true,
+  })
   name: string;
 
-  @Column({ type: 'enum', enum: CounterStatus, default: CounterStatus.CLOSED })
+  @Column({
+    type: 'enum',
+    enum: CounterStatus,
+    default: CounterStatus.CLOSED,
+  })
   status: CounterStatus;
 
   // one counter <-> one staff user (owning side, holds the FK)
