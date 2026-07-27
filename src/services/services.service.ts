@@ -25,7 +25,10 @@ export class ServicesService {
   }
 
   async findOne(id: number): Promise<Services> {
-    const service = await this.servicesRepository.findOne({ where: { id } });
+    const service = await this.servicesRepository.findOne({
+      where: { id },
+      relations: ['queues'],
+    });
     if (!service) {
       throw new NotFoundException(`Service with id ${id} not found`);
     }

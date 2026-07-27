@@ -42,7 +42,13 @@ export class UsersService {
     return this.getUserById(id);
   }
 
-  async findAll(search?: string, role?: Role, sort?: 'ASC' | 'DESC') {
+  async findAll(
+    search?: string,
+    role?: Role,
+    sort?: 'ASC' | 'DESC',
+    page = 1,
+    limit = 10,
+  ) {
     const qb = this.usersRepo.createQueryBuilder('user');
     if (search) {
       qb.andWhere('(user.fullName ILIKE :s OR user.email ILIKE :s)', { s: `%${search}%` });
@@ -51,6 +57,12 @@ export class UsersService {
       qb.andWhere('user.role = :role', { role });
     }
     qb.orderBy('user.createDate', sort === 'ASC' ? 'ASC' : 'DESC');
-    return qb.getMany();
+
+    const safePage = page > 0 ? page : 1;
+    const safeLimit = limit > 0 ? limit : 10;
+    qb.skip((safePage - 1) * safeLimit).take(safeLimit);
+
+    const [data, total] = await qb.getManyAndCount();
+    return { data, total, page: safePage, limit: safeLimit };
   }
 }

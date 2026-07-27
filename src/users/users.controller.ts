@@ -31,8 +31,10 @@ export class UsersController {
     @Query('search') search?: string,
     @Query('role') role?: Role,
     @Query('sort') sort?: 'ASC' | 'DESC',
+    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
+    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
-    return this.usersService.findAll(search, role, sort);
+    return this.usersService.findAll(search, role, sort, page, limit);
   }
  
   @UseGuards(JwtGuard, RolesGuard)
